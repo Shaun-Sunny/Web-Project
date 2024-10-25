@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Diary</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link your CSS file -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css"> <!-- For icons -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- jQuery for smooth scrolling -->
+</head>
+<body>
+    <header>
+        <div class="logo">My Diary</div>
+        <nav>
+            <a href="index.html" class="active">Home</a>
+            <a href="#about">About</a>
+            <a href="#features">Features</a>
+            <a href="#reviews">Reviews</a>
+            <a href="/login" id="loginButton">Login</a>
+        </nav>
+    </header>
+    
+    <script>
+      // Wait for the DOM to load
+      document.addEventListener('DOMContentLoaded', () => {
+          // Get the login button by its ID
+          const loginButton = document.getElementById('loginButton');
+    
+          // Add click event listener
+          loginButton.addEventListener('click', (event) => {
+              event.preventDefault(); // Prevent the default anchor behavior
+    
+              // Optionally, you can perform any action here, like logging
+              console.log('Login button clicked!');
+    
+              // Redirect to the login page
+              window.location.href = 'login.html';
+          });
+      });
+    </script>
+
+    <section class="main-section" id="home">
+        <h1>Write your personal diary</h1>
+    </section>
+
+    <section class="about-section" id="about">
+        <h2>About This Website</h2>
+        <hr class="about-divider">
+        <p>
+            Welcome to My Personal Diary! This website serves as a safe space for you to express your thoughts, document your experiences, and reflect on your journey. 
+            Whether you want to jot down daily reflections, share your dreams, or keep track of your goals, this platform provides you with the perfect place to do so.
+            Join us in cultivating a habit of writing and self-reflection.
+        </p>
+        <hr class="about-divider">
+        
+        <div class="social-media">
+            <h3>Follow Us</h3>
+            <a href="https://www.facebook.com/login" target="_blank" class="social-icon facebook">
+                <i class="bi bi-facebook"></i>
+            </a>
+            <a href="https://www.youtube.com/login" target="_blank" class="social-icon youtube">
+                <i class="bi bi-youtube"></i>
+            </a>
+            <a href="https://www.instagram.com/accounts/login/" target="_blank" class="social-icon instagram">
+                <i class="bi bi-instagram"></i>
+            </a>
+            <a href="https://twitter.com/login" target="_blank" class="social-icon x">
+                <i class="bi bi-twitter"></i>
+            </a>
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <h2>Features</h2>
+        <div class="features-list">
+            <div class="feature-item left">
+                <h3>Login for Personal Writing Messages</h3>
+                <p>Securely log in to your personal account to write and save your private messages and thoughts.</p>
+            </div>
+            <div class="feature-item right">
+                <h3>View, Edit, Delete Diary Entries</h3>
+                <p>Easily manage your diary entries by viewing, editing, or deleting them as needed.</p>
+            </div>
+            <div class="feature-item center">
+                <h3>Post Public Reviews for the Diary</h3>
+                <p>Share your thoughts and experiences with others by posting public reviews for your diary entries.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="reviews" class="review-section">
+        <h2 class="review-heading">Submit Your Review</h2>
+        <form id="reviewForm" class="review-form">
+            <div class="form-group">
+                <label for="userId" class="form-label">Username:</label>
+                <input type="text" id="userId" name="userId" class="form-input" required>
+            </div>
+    
+            <div class="form-group">
+                <label for="reviewText" class="form-label">Your Review:</label>
+                <textarea id="reviewText" name="reviewText" class="form-textarea" required></textarea>
+            </div>
+    
+            <div class="form-group">
+                <label class="form-label">Your Rating:</label>
+                <div class="rating">
+                    <input type="radio" id="star5" name="rating" value="5">
+                    <label for="star5">&#9733;</label>
+                    <input type="radio" id="star4" name="rating" value="4">
+                    <label for="star4">&#9733;</label>
+                    <input type="radio" id="star3" name="rating" value="3">
+                    <label for="star3">&#9733;</label>
+                    <input type="radio" id="star2" name="rating" value="2">
+                    <label for="star2">&#9733;</label>
+                    <input type="radio" id="star1" name="rating" value="1">
+                    <label for="star1">&#9733;</label>
+                </div>
+            </div>
+    
+            <button type="submit" class="submit-btn">Submit Review</button>
+        </form>
+    </section>
+    
+    <script>
+        document.getElementById('reviewForm').addEventListener('submit', async function (event) {
+            event.preventDefault(); // Prevent default form submission
+    
+            // Gather form data
+            const user_id = document.getElementById('userId').value; // Get the username
+            const review_text = document.getElementById('reviewText').value; // Get the review text
+            
+            // Get the selected rating
+            const ratingElements = document.getElementsByName('rating');
+            let rating;
+            for (const element of ratingElements) {
+                if (element.checked) {
+                    rating = element.value; // Set the rating to the checked radio button value
+                    break;
+                }
+            }
+    
+            // Prepare data to send to the server
+            const data = {
+                user_id,
+                review_text,
+                rating,
+                date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+                public_review: true // Default value, change as necessary
+            };
+    
+            // Send data to the server
+            const response = await fetch('/submit-review', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+    
+            // Handle the server response
+            if (response.ok) {
+                const responseData = await response.json();
+                alert(responseData.message); // Alert success message
+                document.getElementById('reviewForm').reset(); // Reset form
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error); // Alert error message
+            }
+        });
+    </script>
+
+
+
+
+
+<section id="reviewList" class="review-list">
+    <h2>Reviews</h2>
+    <div id="reviewsContainer" class="reviews-container"></div>
+</section>
+
+<script>
+    // Existing event listener for submitting the review form...
+    
+    // Function to fetch and display reviews
+    async function fetchReviews() {
+        try {
+            const response = await fetch('/reviews'); // Fetch reviews from the server
+            if (response.ok) {
+                const reviews = await response.json(); // Parse the JSON response
+                const reviewsContainer = document.getElementById('reviewsContainer');
+                
+                // Clear the container before displaying new reviews
+                reviewsContainer.innerHTML = '';
+
+                // Iterate through reviews and create HTML for each review
+                reviews.forEach(review => {
+                    const reviewDiv = document.createElement('div');
+                    reviewDiv.className = 'review-item'; // Class for styling
+                    reviewDiv.innerHTML = `
+                        <h4>${review.user_id}</h4>
+                        <p>Rating: ${review.rating}</p>
+                        <p>${review.review_text}</p>
+                    `;
+                    reviewsContainer.appendChild(reviewDiv); // Append to the container
+                });
+            } else {
+                console.error('Failed to fetch reviews:', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+        }
+    }
+
+    // Call fetchReviews on page load to display existing reviews
+    window.onload = fetchReviews;
+</script>
+
+
+
+
+
+
+    
+    <footer>
+        <p>&copy; 2024 Personal Diary</p>
+    </footer>
+    <script src="script.js"></script> <!-- Link your JS file -->
+</body>
+</html>

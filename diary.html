@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Diary</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link your CSS file -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css"> <!-- For icons -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- jQuery for smooth scrolling -->
+</head>
+<body>
+    <header>
+        <div class="logo">My Diary</div>
+        <nav>
+            <a href="index.html" class="active">Home</a>
+            <a href="#about">About</a>
+            <a href="#features">Features</a>
+            <a href="#reviews">Reviews</a>
+            <a href="/login" id="loginButton">Login</a>
+        </nav>
+    </header>
+
+
+
+    <main>
+        <section id="diary-entry">
+            <h2>Create a New Entry</h2>
+            <form id="entryForm">
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" placeholder="Enter the title of your entry" required>
+                </div>
+                <div class="form-group">
+                    <label for="content">Content:</label>
+                    <textarea id="content" name="content" rows="10" placeholder="Write your thoughts here..." required></textarea>
+                </div>
+                <button type="submit">Save Entry</button>
+            </form>
+    
+            <div id="message" style="display:none; padding-top: 10px;"></div>
+        </section>
+    
+        <section id="past-entries">
+            <h2>Past Entries</h2>
+            <ul id="entriesList"></ul>
+        </section>
+    
+        <!-- Modal for Viewing or Editing an Entry -->
+        <div id="entryModal">
+            <div id="modalContent">
+                <h2 id="modalTitle"></h2>
+                <textarea id="modalContentText" rows="10"></textarea>
+                <button id="editSaveBtn">Save Changes</button>
+                <button id="deleteBtn">Delete Entry</button>
+                <button id="closeModal">Close</button>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        const showMessage = (message, type = 'error') => {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = type === 'error' ? 'red' : 'green';
+        };
+    
+        document.getElementById('entryForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+    
+            const title = document.getElementById('title').value.trim();
+            const content = document.getElementById('content').value.trim();
+    
+            if (!title || !content) {
+                alert('Please fill out both the title and content fields.');
+                return;
+            }
+    
+            const data = { title, content };
+    
+            try {
+                const response = await fetch('/save-diary-entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+    
+                const result = await response.json();
+                if (response.ok) {
+                    showMessage('Entry saved successfully!', 'success');
+                    document.getElementById('entryForm').reset();
+                    loadDiaryEntries(); // Reload entries after saving
+                } else {
+                    showMessage(result.error);
+                }
+            } catch (error) {
+                console.error('Error saving diary entry:', error);
+                showMessage('Error saving diary entry. Please try again.');
+            }
+        });
+    
+        async function loadDiaryEntries() {
+            const entriesList = document.getElementById('entriesList');
+            entriesList.innerHTML = '<li>Loading...</li>'; // Display loading message
+    
+            try {
+                const response = await fetch('/get-diary-entries');
+                const result = await response.json();
+    
+                if (response.ok) {
+                    entriesList.innerHTML = ''; // Clear loading message
+                    result.entries.forEach(entry => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = entry.title;
+                        listItem.dataset.id = entry._id;
+    
+                        // Add click event to handle viewing and editing
+                        listItem.addEventListener('click', () => handleEntryClick(entry._id));
+    
+                        entriesList.appendChild(listItem);
+                    });
+                } else {
+                    entriesList.innerHTML = '<li>Error loading entries.</li>';
+                }
+            } catch (error) {
+                console.error('Error fetching diary entries:', error);
+                entriesList.innerHTML = '<li>Error loading entries. Please try again.</li>';
+            }
+        }
+    
+        function handleEntryClick(entryId) {
+            const modal = document.getElementById('entryModal');
+            modal.style.display = 'block';
+    
+            fetch(`/view-diary-entry/${entryId}`)
+                .then(response => response.json())
+                .then(entry => {
+                    document.getElementById('modalTitle').textContent = entry.title;
+                    document.getElementById('modalContentText').value = entry.content;
+    
+                    document.getElementById('editSaveBtn').onclick = () => editDiaryEntry(entryId);
+                    document.getElementById('deleteBtn').onclick = () => deleteDiaryEntry(entryId);
+                })
+                .catch(error => {
+                    console.error('Error loading entry:', error);
+                    showMessage('Failed to load entry.');
+                });
+        }
+    
+        async function editDiaryEntry(entryId) {
+            const newTitle = document.getElementById('modalTitle').textContent;
+            const newContent = document.getElementById('modalContentText').value;
+    
+            try {
+                const response = await fetch(`/edit-diary-entry/${entryId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: newTitle, content: newContent }),
+                });
+    
+                const result = await response.json();
+                if (response.ok) {
+                    showMessage(result.message, 'success');
+                    document.getElementById('entryModal').style.display = 'none';
+                    loadDiaryEntries(); // Reload entries after edit
+                } else {
+                    showMessage(result.error);
+                }
+            } catch (error) {
+                console.error('Error editing entry:', error);
+                showMessage('Failed to edit entry.');
+            }
+        }
+    
+        async function deleteDiaryEntry(entryId) {
+            const confirmDelete = confirm('Are you sure you want to delete this entry?');
+    
+            if (confirmDelete) {
+                try {
+                    const response = await fetch(`/delete-diary-entry/${entryId}`, {
+                        method: 'DELETE',
+                    });
+    
+                    const result = await response.json();
+                    if (response.ok) {
+                        showMessage(result.message, 'success');
+                        document.getElementById('entryModal').style.display = 'none';
+                        loadDiaryEntries(); // Reload entries after delete
+                    } else {
+                        showMessage(result.error);
+                    }
+                } catch (error) {
+                    console.error('Error deleting entry:', error);
+                    showMessage('Failed to delete entry.');
+                }
+            }
+        }
+    
+        // Close modal on button click
+        document.getElementById('closeModal').addEventListener('click', () => {
+            const modal = document.getElementById('entryModal');
+            modal.style.display = 'none';
+    
+            // Clear modal fields
+            document.getElementById('modalTitle').textContent = '';
+            document.getElementById('modalContentText').value = '';
+        });
+    
+        // Close modal when clicking outside the modal content
+        window.onclick = function(event) {
+            const modal = document.getElementById('entryModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+                document.getElementById('modalTitle').textContent = '';
+                document.getElementById('modalContentText').value = '';
+            }
+        };
+    
+        // Load entries when the page loads
+        window.onload = loadDiaryEntries;
+    </script>
+    
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <footer>
+        <p>&copy; 2024 Personal Diary</p>
+    </footer>
+    <script src="script.js"></script> <!-- Link your JS file -->
+</body>
+</html>
